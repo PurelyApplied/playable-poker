@@ -4,22 +4,25 @@
 use Term::ANSIColor;
 sub print_top;
 
-# Change these to different colors, if you prefer.  Order them from "good" to "bad"
-#    Valid colors are: black  red  green  yellow  blue  magenta  cyan  white ; any may be prepended with `bright_`
 
+
+########## 
+# Edit this if you want different colors.
+# Order them from "good" to "bad"
+# Valid colors are: black  red  green  yellow  blue  magenta  cyan  white ; any may be prepended with `bright_`
 our @color_rankings = (
-    'bright_green','green',
-    'bright_yellow','yellow',
-    'bright_blue','blue',
-    'bright_red','red'
+    'bright_green',
+    'green',
+    'bright_yellow',
+    'yellow',
+    'bright_blue',
+    'blue',
+    'bright_red'#,
+    #'red'
     );
 
-
-
-
-
-# I know I'm overusing global declaration.  But I never really intended anyone else to see this.
-
+# Unless you know what you're doing, don't change anything else.
+##########
 
 our @cards = ('2','3','4','5','6','7','8','9','t','j','q','k','a');
 our %values = (
@@ -73,14 +76,12 @@ foreach $w (sort( { $a <=> $b } keys(%fractional))){
 ## main:
 #################
 
-# get_color_i(hand,top)
+# get_color_i(hand,section)
 sub get_color_i{
     my ($cards,$section) = @_;
     my $wedge_size = 325 / ($section * ($#color_rankings+1) );
-    my $color = -1;
-    my $tmp = 0;
-    while($tmp < $weighted{$cards}){ $color++ ; $tmp += $wedge_size; }
-    return $color;
+    my $color = int( $weighted{$cards} / $wedge_size);
+    return $color_rankings[$color];
 }
 
 hello();
@@ -89,27 +90,24 @@ while(<>){
     chomp();
     my $inp = lc $_;
     unless($inp eq ""){
-	if($inp =~ /exit/){ print "Goodbye!\n";last;}
-	elsif($inp =~ /help/){  help(); }
-	elsif($inp =~ /info/i){ info(); }
-	elsif($inp =~ /odds (\w\w\w) (\d+)/){odds_against($1,$2);}
-	elsif($inp =~ /^list top\s+(\d+)/){
-	    my $players = $1;
-	    print " Top 1/$players of possible hole cards:\n";
-	    lookup_head();
-	    foreach $w (sort( { $weighted{$a} <=> $weighted{$b} } keys(%weighted))){
-		if( 325.0 / $weighted{$w} < $players){last;}
-		else{ 
-		    
-		    lookup($w); 
-		}
-	    }
+	if($inp =~ /^\s*exit/){ print "Goodbye!\n";last;}
+	elsif($inp =~ /^\s*help/){  help(); }
+	elsif($inp =~ /^\s*info/i){ info(); }
+	elsif($inp =~ /^\s*odds (\w\w\w) (\d+)/){odds_to_win($1,$2);}
+	elsif($inp =~ /^\s*list top\s+(\d+)/){
+#	    my $section = $1;
+	    list_top($1);
 	}
-	elsif($inp =~ /^top\s+(\d+)/){
-	    my $players = $1;
-	    print_top($players);
+	elsif($inp =~ /^\s*top\s+(\d+)/){
+	    print_top($1);
 	}
-	elsif($inp =~ /(\w)(\w)(\w?)\s*(\d*)/){
+	elsif($inp =~ /^\s*list play\s+(\d+)\s*(\d*)/){
+	    list_play($1,$2);
+	}
+	elsif($inp =~ /^\s*play\s+(\d+)\s*(\d*)/){
+	    print_play($1,$2);
+	}
+	elsif($inp =~ /^\s*(\w)(\w)(\w?)\s*(\d*)/){
 	    my ($c1, $c2, $suit, $beat) = ($1, $2, $3, $4);
 	    if(0==is_a_card($c1)){     print "$c1 is not a valid card.\n"; }
 	    elsif(0==is_a_card($c2)){  print "$c2 is not a valid card.\n"; }
@@ -140,15 +138,108 @@ print "\n";
 ## subs
 ############
 
+
+#! Correct color scheme: get wedge size ; int ( value / wedge size )
+# g_c_b_r($hand,$odds,$players);
+sub get_color_by_rate{
+    my ($hand, $rate, $players) = @_;
+    my $odds = odds_to_win($hand,$players);
+    my $wedge_size = (100.0 - $rate) / ($#color_rankings+1);
+    my $color = int( (100.0 - $odds) / $wedge_size);
+    return $color_rankings[$color];
+}
+
+#! rate should be in %?
+
+#l_p(players,rate)
+sub list_play{
+    my ($players, $rate) = @_;
+    unless(length($rate)>0){ $rate=50; }
+    lookup_head($players);
+    foreach $w (sort( { $weighted{$a} <=> $weighted{$b} } keys(%weighted))){
+	my $odds = odds_to_win($w,$players);
+	if( $odds < $rate ){last;}
+	else{
+	    unless($^O =~ /win/i){
+		print color get_color_by_rate($w,$rate,$players);
+	    }
+	    lookup($w,$odds); 
+	    unless($^O =~ /win/i){
+		print color 'reset';
+	    }
+	}
+    }
+    
+}
+
+sub print_play{
+    my ($players,$rate) = @_;
+    print " Hands with at least $rate% chance of being best\n";
+    print "   in a game of $players players.\n  ";
+    for( my $row = $#cards ; $row >= 0; $row--){
+	for( my $col = $#cards ; $col >= 0; $col--){
+	    my $hand;
+	    my $suits;
+	    if(  $row == $col ){
+		$hand = $cards[$row] . $cards[$col];
+		$suits='';
+	    }
+	    elsif( $row < $col ){
+		$hand = $cards[$col] . $cards[$row];
+		$suits='o';
+	    }
+	    else{
+		$hand = $cards[$row] . $cards[$col] ;
+		$suits='s';
+	    }
+	    
+	    my $toprint;
+	    my $odds = odds_to_win($hand.$suits,$players);
+	    if( $odds >= $rate){
+		print color get_color_by_rate($hand.$suits,$rate,$players);
+		printf( "%-4s", (uc $hand) . $suits);
+		print color 'reset';
+	    }
+	    else{ printf "%-4s", " . "; }
+	}
+	print "\n  ";
+    }
+    print "\n";
+}
+
+sub list_top{
+    my ($section) = @_;
+    print " Top 1/$section of possible hole cards:\n";
+    lookup_head();
+    foreach $w (sort( { $weighted{$a} <=> $weighted{$b} } keys(%weighted))){
+	if( 325.0 / $weighted{$w} < $section){last;}
+	else{
+	    unless($^O =~ /win/i){print color get_color_i($w,$section);}
+	    lookup($w); 
+	    unless($^O =~ /win/i){print color 'reset';}
+	}
+    }
+}
+
 sub lookup_head{
-    printf( "   hole ; static rank ; weighed rank\n" );
-    printf( " -------------------------------------\n" );
+    my ($players) = @_;
+    print( "   hole ; static rank ; weighed rank " );
+    if(length($players)){printf(                "; odds with %d players",$players);}
+    print "\n";
+    print( " -------------------------------------" );
+    if(length($players)){print                  "----------------------";}
+    print "\n";
 }
 
 #sub lookup(cards,sorted,ranks,beat){
 sub lookup{
-    my ($hand, $beat) = @_;
-    printf( "    %-3s ;  %3d of 169 ; %3d of 325\n", f_hand($hand),$ranked{$hand},$weighted{$hand}); 
+    my ($hand, $odds) = @_;
+    printf( "    %-3s ;  %3d of 169 ; %3d of 325", f_hand($hand),$ranked{$hand},$weighted{$hand}); 
+
+    if(length($odds)){
+	printf ( "   ; %0.3f%% ", $odds );
+    }
+    print "\n";
 }
 
 sub hello{
@@ -170,9 +261,9 @@ sub info{
     print "  The creator assumes no responsibility for its usage,\n";
     print "    actions based on reported information, et cetera.\n";
     print "\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "  Use at your own risk.\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "\n";
     print "  (And while I feel obligated to put the above... it's a perl script.\n";
     print "   You can look at the source.\n";
@@ -192,50 +283,55 @@ sub f_hand{
 
 sub help{
     print "  Valid commands, listed in parse order:\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    exit\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Exit this program.\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    help\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Print this.\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    info\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Print information regarding this program.\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    list top <n>\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       List the top 1/<n> ranked hole cards, in order.\n";
     print "       Example: `list top 5` lists the top 20% of hole cards.\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    top <n>\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Gives `list top <n>` information in visual format.\n";
     print "         Coloring can be changed by a simple source edit.\n";
     print "       Example: `top 5` shows the top 20% of hole cards.\n";
-    print color 'bright_yellow';
-    print "    PENDING:list play <n> <f=0.5>\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    print "    list play <n> <r=50>\n";
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Gives hands to play in a game of <n> people,\n";
-    print "         where you have <f> probability of holding the best cards.\n";
+    print "         where you have at least <r>% chance to have the best cards.\n";
     print "       Computation is naive and does **not** consider\n";
     print "         the your hand when deciding an opponent's hand.\n";
-    print color 'bright_yellow';
-    print "    PENDING:play <n> <f=0.5>\n";
-    print color 'reset';
-    print "       as list play <n>, in visual format.\n";
-    print color 'bright_yellow';
+    print "       If <r> is not provided, uses 50% as the threashold.\n";
+    print "       Example: `list play 5` lists the hands that have even odds\n";
+    print "           of being the best hole cards in a 5 player game (counting yourself).\n";
+    print "       Example: `list play 6 75` lists the hands that have 75% chance\n";
+    print "           of being the best hole cards in a 6 player game (counting yourself).\n";
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    print "    play <n> <f=0.5>\n";
+    unless($^O =~ /win/i){    print color 'reset';}
+    print "       As with `top <n>`, gives the `list play` infomation visually.\n";
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    <possible hole cards>\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "       Gives ranking information for input cards.\n";
     print "       Example: `ak`  gives information about Ace-King suited and offsuit.\n";
     print "                `t9o` gives information about Ten-Nine offsuit.\n";
     print "       (Input is not case or ordering sensitive.)\n";
-    print color 'bright_yellow';
+    unless($^O =~ /win/i){    print color 'bright_yellow';}
     print "    PENDING:<possible hole cards> <n>\n";
-    print color 'reset';
+    unless($^O =~ /win/i){    print color 'reset';}
     print "      Gives ranking information for input cards, as above.\n";
     print "      Additionally, gives naive odds of those cards being the best\n";
     print "         in a game of <n> players (count yourself).\n";
@@ -268,7 +364,7 @@ sub print_top(\$\@\%){
 	    
 	    my $toprint;
 	    if( $weighted{$hand.$suits} <= 325.0 / $top){
-		print color $color_rankings[get_color_i($hand.$suits,$top)];
+		print color get_color_i($hand.$suits,$top);
 		printf( "%-4s", (uc $hand) . $suits);
 		print color 'reset';
 	    }
@@ -279,13 +375,13 @@ sub print_top(\$\@\%){
     print "\n";
 }
 
-# odds_against(hand,weight,players)
-sub odds_against{
+# odds_to_win(hand,weight,players)
+sub odds_to_win{
     my ($hand,$players) = @_;
     $players--; # don't play against yourself.
     my $beat_by = $weighted{$hand} - 1;
     my $beat_per= $beat_by / 325.0;
     #                   I am not beat ** by anyone
     my $likelihood = (1.0 - $beat_per)**$players;
-    return $likelihood;
+    return (100*$likelihood);
 }

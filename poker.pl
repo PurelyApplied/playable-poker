@@ -265,7 +265,7 @@ sub info{
     print "  Use at your own risk.\n";
     unless($^O =~ /win/i){    print color 'reset';}
     print "\n";
-    print "  (And while I feel obligated to put the above... it's a perl script.\n";
+    print "  (And while I feel obligated to put the above... it's a Perl script.\n";
     print "   You can look at the source.\n";
     print "   Learn how to read some code.\n";
     print "   Make sure I'm not ruining your computer.\n";

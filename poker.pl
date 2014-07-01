@@ -108,7 +108,7 @@ while(<>){
 	    print_play($1,$2);
 	}
 	elsif($inp =~ /^\s*(\w)(\w)(\w?)\s*(\d*)/){
-	    my ($c1, $c2, $suit, $beat) = ($1, $2, $3, $4);
+	    my ($c1, $c2, $suit, $players) = ($1, $2, $3, $4);
 	    if(0==is_a_card($c1)){     print "$c1 is not a valid card.\n"; }
 	    elsif(0==is_a_card($c2)){  print "$c2 is not a valid card.\n"; }
 	    else{
@@ -119,13 +119,13 @@ while(<>){
 		
 		# if a suit is provided or we have a pocket pair
 		if($suit ne "" || $c1 eq $c2){
-		    lookup_head();
-		    lookup($hand.$suit, $beat);
+		    lookup_head($players);
+		    lookup($hand.$suit, odds_to_win($hand.$suit,$players) );
 		}
 		else{
-		    lookup_head();
-		    lookup($hand.'s', $beat);
-		    lookup($hand.'o', $beat);
+		    lookup_head($players);
+		    lookup($hand.'s', odds_to_win($hand.'s',$players) );
+		    lookup($hand.'o', odds_to_win($hand.'o',$players) );
 		}
 	    }
 	}
@@ -146,6 +146,7 @@ sub get_color_by_rate{
     my $odds = odds_to_win($hand,$players);
     my $wedge_size = (100.0 - $rate) / ($#color_rankings+1);
     my $color = int( (100.0 - $odds) / $wedge_size);
+    if($hand eq '32o'){$color--;} # Hack solution to a rare boundary problem
     return $color_rankings[$color];
 }
 
@@ -174,6 +175,7 @@ sub list_play{
 
 sub print_play{
     my ($players,$rate) = @_;
+    unless(length($rate)>0){ $rate=50; }
     print " Hands with at least $rate% chance of being best\n";
     print "   in a game of $players players.\n  ";
     for( my $row = $#cards ; $row >= 0; $row--){
@@ -330,7 +332,7 @@ sub help{
     print "                `t9o` gives information about Ten-Nine offsuit.\n";
     print "       (Input is not case or ordering sensitive.)\n";
     unless($^O =~ /win/i){    print color 'bright_yellow';}
-    print "    PENDING:<possible hole cards> <n>\n";
+    print "    <possible hole cards> <n>\n";
     unless($^O =~ /win/i){    print color 'reset';}
     print "      Gives ranking information for input cards, as above.\n";
     print "      Additionally, gives naive odds of those cards being the best\n";
@@ -378,6 +380,7 @@ sub print_top(\$\@\%){
 # odds_to_win(hand,weight,players)
 sub odds_to_win{
     my ($hand,$players) = @_;
+    unless(length($players)){return '';}
     $players--; # don't play against yourself.
     my $beat_by = $weighted{$hand} - 1;
     my $beat_per= $beat_by / 325.0;

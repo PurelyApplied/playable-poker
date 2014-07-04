@@ -274,6 +274,16 @@ sub info{
     print "  The creator assumes no responsibility for its usage,\n";
     print "    actions based on reported information, et cetera.\n";
     print "\n";
+    print "  This program is inaccurate.\n";
+    print "  Both `play` commands report % chance of holding the best hand naively.\n";
+    print "  In effect, every player is given a number of 1-325, corresponding to some hand (off-suits weighted)\n";
+    print "  It does *not* take into consideration the reduced likelihood of an opponent receiving,\n";
+    print "    for instance, an ace, given the fact that you have one.\n";
+    print "\n";
+    print "  And as always, poker is a game of chance.\n";
+    print "  Remember that the best cards don't always win.\n";
+    print "  If they did, it wouldn't be called `gambling.`\n";
+    print "\n";
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "  Use at your own risk.\n";
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
@@ -326,7 +336,7 @@ sub help{
     print "         where you have at least <r>% chance to have the best cards.\n";
     print "       Computation is naive and does **not** consider\n";
     print "         the your hand when deciding an opponent's hand.\n";
-    print "       If <r> is not provided, uses 50% as the threashold.\n";
+    print "       If <r> is not provided, uses 50% as the threshold.\n";
     print "       Example: `list play 5` lists the hands that have even odds\n";
     print "           of being the best hole cards in a 5 player game (counting yourself).\n";
     print "       Example: `list play 6 75` lists the hands that have 75% chance\n";
@@ -334,7 +344,7 @@ sub help{
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    play <n> <f=0.5>\n";
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
-    print "       As with `top <n>`, gives the `list play` infomation visually.\n";
+    print "       As with `top <n>`, gives the `list play` information visually.\n";
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    <possible hole cards>\n";
     unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}

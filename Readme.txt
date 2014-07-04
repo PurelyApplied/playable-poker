@@ -21,7 +21,8 @@ Running this script:
   *nix users and (possibly) Mac users will enjoy additional coloring of reported data.
   If a Windows user wishes to have color, they will likely need a console emulator to do so.
   I recommend ConEmu, as I know that the ANSI coloring used works with it.
-  Full monochrome functionality exists regardless.
+  This is available at http://sourceforge.net/projects/conemu/.
+  Full functionality exists regardless in monochrome, otherwise.
   
   Color options (that is, whether color is used in Windows and what colors are used) are editable in the beginning of the source script poker.pl
   

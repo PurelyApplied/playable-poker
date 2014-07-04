@@ -1,15 +1,19 @@
 #!/usr/bin/perl -w
 # (c) Patrick Rhomberg, June 2014
 
-use Term::ANSIColor;
-sub print_top;
-
-
-
 ########## 
+# Windows does not natively support ANSI coloring on the command line.
+# If you *really* want color, I recommend getting a command line emulator called ConEmu.
+# If you go that route, change the word "no" to yes.
+#  (Actually, if this says anything other than `no`, it will try to print in color.)
+# Also edit the color rankings below to suit your tastes.
+our $Use_Color_on_Windows = "no";
+
 # Edit this if you want different colors.
 # Order them from "good" to "bad"
-# Valid colors are: black  red  green  yellow  blue  magenta  cyan  white ; any may be prepended with `bright_`
+# Valid colors are: black  red  green  yellow  blue  magenta  cyan  white ;
+# any may be prepended with `bright_`
+# If you got ConEmu for Windows, `bright_` colors might not work.
 our @color_rankings = (
     'bright_green',
     'green',
@@ -17,12 +21,21 @@ our @color_rankings = (
     'yellow',
     'bright_blue',
     'blue',
-    'bright_red'#,
-    #'red'
+#    'bright_cyan',
+#    'cyan',
+#    'bright_magenta',
+#    'magenta',
+    'bright_red',
+    'red'
     );
 
 # Unless you know what you're doing, don't change anything else.
 ##########
+
+
+use Term::ANSIColor;
+sub print_top;
+
 
 our @cards = ('2','3','4','5','6','7','8','9','t','j','q','k','a');
 our %values = (
@@ -81,6 +94,7 @@ sub get_color_i{
     my ($cards,$section) = @_;
     my $wedge_size = 325 / ($section * ($#color_rankings+1) );
     my $color = int( $weighted{$cards} / $wedge_size);
+    if($color == $#color_rankings+1){$color--;} # Hack solution to a rare boundary problem
     return $color_rankings[$color];
 }
 
@@ -146,8 +160,9 @@ sub get_color_by_rate{
     my $odds = odds_to_win($hand,$players);
     my $wedge_size = (100.0 - $rate) / ($#color_rankings+1);
     my $color = int( (100.0 - $odds) / $wedge_size);
-    if($hand eq '32o'){$color--;} # Hack solution to a rare boundary problem
+    if($color == $#color_rankings+1){$color--;} # Hack solution to a rare boundary problem
     return $color_rankings[$color];
+#    return $color;
 }
 
 #! rate should be in %?
@@ -161,13 +176,9 @@ sub list_play{
 	my $odds = odds_to_win($w,$players);
 	if( $odds < $rate ){last;}
 	else{
-	    unless($^O =~ /win/i){
-		print color get_color_by_rate($w,$rate,$players);
-	    }
+	    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color get_color_by_rate($w,$rate,$players); }
 	    lookup($w,$odds); 
-	    unless($^O =~ /win/i){
-		print color 'reset';
-	    }
+	    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color 'reset'; }
 	}
     }
     
@@ -198,9 +209,9 @@ sub print_play{
 	    my $toprint;
 	    my $odds = odds_to_win($hand.$suits,$players);
 	    if( $odds >= $rate){
-		print color get_color_by_rate($hand.$suits,$rate,$players);
+		unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color get_color_by_rate($hand.$suits,$rate,$players); }
 		printf( "%-4s", (uc $hand) . $suits);
-		print color 'reset';
+		unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color 'reset'; }
 	    }
 	    else{ printf "%-4s", " . "; }
 	}
@@ -216,9 +227,9 @@ sub list_top{
     foreach $w (sort( { $weighted{$a} <=> $weighted{$b} } keys(%weighted))){
 	if( 325.0 / $weighted{$w} < $section){last;}
 	else{
-	    unless($^O =~ /win/i){print color get_color_i($w,$section);}
+	    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){print color get_color_i($w,$section);}
 	    lookup($w); 
-	    unless($^O =~ /win/i){print color 'reset';}
+	    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){print color 'reset';}
 	}
     }
 }
@@ -263,9 +274,9 @@ sub info{
     print "  The creator assumes no responsibility for its usage,\n";
     print "    actions based on reported information, et cetera.\n";
     print "\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "  Use at your own risk.\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "\n";
     print "  (And while I feel obligated to put the above... it's a Perl script.\n";
     print "   You can look at the source.\n";
@@ -285,32 +296,32 @@ sub f_hand{
 
 sub help{
     print "  Valid commands, listed in parse order:\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    exit\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Exit this program.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    help\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Print this.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    info\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Print information regarding this program.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    list top <n>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       List the top 1/<n> ranked hole cards, in order.\n";
     print "       Example: `list top 5` lists the top 20% of hole cards.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    top <n>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Gives `list top <n>` information in visual format.\n";
     print "         Coloring can be changed by a simple source edit.\n";
     print "       Example: `top 5` shows the top 20% of hole cards.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    list play <n> <r=50>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Gives hands to play in a game of <n> people,\n";
     print "         where you have at least <r>% chance to have the best cards.\n";
     print "       Computation is naive and does **not** consider\n";
@@ -320,20 +331,20 @@ sub help{
     print "           of being the best hole cards in a 5 player game (counting yourself).\n";
     print "       Example: `list play 6 75` lists the hands that have 75% chance\n";
     print "           of being the best hole cards in a 6 player game (counting yourself).\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    play <n> <f=0.5>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       As with `top <n>`, gives the `list play` infomation visually.\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    <possible hole cards>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "       Gives ranking information for input cards.\n";
     print "       Example: `ak`  gives information about Ace-King suited and offsuit.\n";
     print "                `t9o` gives information about Ten-Nine offsuit.\n";
     print "       (Input is not case or ordering sensitive.)\n";
-    unless($^O =~ /win/i){    print color 'bright_yellow';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'cyan';}
     print "    <possible hole cards> <n>\n";
-    unless($^O =~ /win/i){    print color 'reset';}
+    unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){    print color 'reset';}
     print "      Gives ranking information for input cards, as above.\n";
     print "      Additionally, gives naive odds of those cards being the best\n";
     print "         in a game of <n> players (count yourself).\n";
@@ -366,9 +377,9 @@ sub print_top(\$\@\%){
 	    
 	    my $toprint;
 	    if( $weighted{$hand.$suits} <= 325.0 / $top){
-		print color get_color_i($hand.$suits,$top);
+		unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color get_color_i($hand.$suits,$top);}
 		printf( "%-4s", (uc $hand) . $suits);
-		print color 'reset';
+		unless($^O =~ /win/i && $Use_Color_on_Windows eq "no"){  print color 'reset'; }
 	    }
 	    else{ printf "%-4s", " . "; }
 	}
